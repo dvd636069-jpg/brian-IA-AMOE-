@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>amoe - Chat</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :root {
+      --bg-dark: #120719;
+      --bg-chat: #1a0c24;
+      --bubble-sent: linear-gradient(135deg, #a83279, #d62976, #fa7e1e);
+      --bubble-received: #2d163a;
+      --text-light: #f5f5f5;
+      --text-muted: #b3a0c2;
+      --accent-pink: #ff4b8b;
+      --accent-purple: #9d4edd;
+      --border-color: #331847;
+    }
+
+    body, html {
+      height: 100%;
+      width: 100%;
+      background-color: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    /* Loading Screen Cinematic */
+    .loading-screen {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(circle at center, #2e1047 0%, #0d0414 100%);
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+    }
+
+    .loading-screen.fade-out {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .loading-heart {
+      font-size: 60px;
+      color: var(--accent-pink);
+      animation: heartBeat 1.2s infinite ease-in-out;
+      filter: drop-shadow(0 0 20px rgba(255, 75, 139, 0.8));
+    }
+
+    @keyframes heartBeat {
+      0% { transform: scale(1); }
+      14% { transform: scale(1.3); }
+      28% { transform: scale(1); }
+      42% { transform: scale(1.3); }
+      70% { transform: scale(1); }
+    }
+
+    .loading-text {
+      color: var(--text-light);
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .loading-bar-bg {
+      width: 220px;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(157, 78, 221, 0.4);
+    }
+
+    .loading-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #9d4edd, #ff4b8b);
+      border-radius: 10px;
+      animation: fillBar 3s ease-in-out forwards;
+    }
+
+    @keyframes fillBar {
+      0% { width: 0%; }
+      30% { width: 35%; }
+      70% { width: 75%; }
+      100% { width: 100%; }
+    }
+
+    /* Container Principal */
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      height: 100%;
+      max-height: 100vh;
+      background-color: var(--bg-dark);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 0 30px rgba(157, 78, 221, 0.3);
+    }
+
+    /* Header Instagram Style */
+    .chat-header {
+      height: 60px;
+      background-color: rgba(26, 12, 36, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 10;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .back-btn {
+      color: var(--text-light);
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .profile-avatar-container {
+      position: relative;
+      cursor: pointer;
+    }
+
+    .profile-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+      padding: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .avatar-inner {
+      width: 100%;
+      height: 100%;
+      background-color: #240b36;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: #ff3366;
+      animation: heartPulse 1.8s infinite ease-in-out;
+    }
+
+    @keyframes heartPulse {
+      0% { transform: scale(0.92); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(0.92); }
+    }
+
+    .online-badge {
+      width: 11px;
+      height: 11px;
+      background-color: #10b981;
+      border: 2px solid var(--bg-dark);
+      border-radius: 50%;
+      position: absolute;
+      bottom: 0;
+      right: 0;
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .user-name {
+      color: var(--text-light);
+      font-weight: 700;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .verified-icon {
+      color: var(--accent-pink);
+      font-size: 12px;
+    }
+
+    .user-status {
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 18px;
+      color: var(--text-light);
+      font-size: 20px;
+    }
+
+    .header-actions i {
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .header-actions i:hover {
+      color: var(--accent-pink);
+    }
+
+    /* Chat Area with Kitty Pattern */
+    .chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background-color: var(--bg-chat);
+      background-image: 
+        radial-gradient(rgba(157, 78, 221, 0.15) 1px, transparent 0),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cpath fill='%239d4edd' fill-opacity='0.08' d='M20 20c-2 0-4 2-4 4s2 4 4 4 4-2 4-4-2-2-4-2zm-8 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm16 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-12 8c-2.2 0-4 1.8-4 4 0 2.5 3 6 4 7 1-1 4-4.5 4-7 0-2.2-1.8-4-4-4zm40 10c-2 0-4 2-4 4s2 4 4 4 4-2 4-4-2-2-4-2zm-8 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm16 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-12 8c-2.2 0-4 1.8-4 4 0 2.5 3 6 4 7 1-1 4-4.5 4-7 0-2.2-1.8-4-4-4z'/%3E%3C/svg%3E");
+      background-size: 30px 30px, 90px 90px;
+      scroll-behavior: smooth;
+    }
+
+    .date-divider {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin: 10px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .message {
+      max-width: 78%;
+      display: flex;
+      flex-direction: column;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.sent {
+      align-self: flex-end;
+    }
+
+    .message.received {
+      align-self: flex-start;
+    }
+
+    .message-content {
+      padding: 11px 15px;
+      border-radius: 20px;
+      font-size: 14.5px;
+      line-height: 1.4;
+      word-wrap: break-word;
+      position: relative;
+    }
+
+    .message.sent .message-content {
+      background: var(--bubble-sent);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 3px 10px rgba(214, 41, 118, 0.25);
+    }
+
+    .message.received .message-content {
+      background-color: var(--bubble-received);
+      color: var(--text-light);
+      border-bottom-left-radius: 4px;
+      border: 1px solid rgba(157, 78, 221, 0.2);
+    }
+
+    .message-time {
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.6);
+      align-self: flex-end;
+      margin-top: 2px;
+    }
+
+    .message.received .message-time {
+      color: var(--text-muted);
+    }
+
+    /* Typing Indicator */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 12px 16px;
+      background-color: var(--bubble-received);
+      border-radius: 20px;
+      border-bottom-left-radius: 4px;
+      width: fit-content;
+      margin-bottom: 5px;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background-color: var(--accent-pink);
+      border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out both;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+
+    /* Quick Emoji Bar */
+    .quick-emojis {
+      display: flex;
+      gap: 10px;
+      padding: 8px 16px;
+      background-color: var(--bg-dark);
+      overflow-x: auto;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .quick-emojis::-webkit-scrollbar {
+      display: none;
+    }
+
+    .emoji-pill {
+      background: rgba(157, 78, 221, 0.15);
+      border: 1px solid rgba(157, 78, 221, 0.3);
+      border-radius: 16px;
+      padding: 5px 12px;
+      font-size: 13px;
+      color: var(--text-light);
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .emoji-pill:active {
+      transform: scale(0.95);
+      background: var(--accent-pink);
+    }
+
+    /* Input Footer Instagram Style */
+    .chat-input-area {
+      padding: 10px 16px 16px 16px;
+      background-color: var(--bg-dark);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .input-wrapper {
+      flex: 1;
+      background-color: #241133;
+      border-radius: 25px;
+      display: flex;
+      align-items: center;
+      padding: 6px 16px;
+      border: 1px solid rgba(157, 78, 221, 0.3);
+    }
+
+    .input-wrapper:focus-within {
+      border-color: var(--accent-pink);
+    }
+
+    .chat-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-light);
+      font-size: 15px;
+      padding: 6px 0;
+    }
+
+    .chat-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .input-icons {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-muted);
+      font-size: 18px;
+    }
+
+    .input-icons i {
+      cursor: pointer;
+    }
+
+    .send-btn {
+      color: var(--accent-pink);
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      display: none;
+      background: none;
+      border: none;
+    }
+
+    .heart-action-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 75, 139, 0.2);
+      border: 1px solid var(--accent-pink);
+      color: var(--accent-pink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .heart-action-btn:active {
+      transform: scale(0.85);
+      background: var(--accent-pink);
+      color: #fff;
+    }
+
+    /* Profile Modal */
+    .modal {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn 0.2s;
+    }
+
+    .modal-card {
+      background: var(--bg-dark);
+      border: 1px solid var(--accent-purple);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 320px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+    }
+
+    .close-modal {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      color: var(--text-muted);
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .modal-avatar {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, #f09433, #dc2743, #bc1888);
+      padding: 3px;
+      margin-bottom: 12px;
+    }
+
+    .modal-avatar-inner {
+      width: 100%; height: 100%;
+      background: #240b36;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 45px;
+      color: var(--accent-pink);
+    }
+
+    .modal-name {
+      color: var(--text-light);
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .modal-bio {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin: 8px 0 16px 0;
+      line-height: 1.4;
+    }
+
+    .modal-stats {
+      display: flex;
+      justify-content: space-around;
+      width: 100%;
+      border-top: 1px solid var(--border-color);
+      padding-top: 14px;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-value {
+      color: var(--text-light);
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .stat-label {
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    /* Call Modal */
+    .call-modal {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--bg-dark);
+      z-index: 200;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 60px 20px 40px 20px;
+    }
+
+    .call-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .call-avatar {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, #f09433, #dc2743, #bc1888);
+      padding: 4px;
+      animation: pulseGlow 2s infinite;
+    }
+
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 0 0 0 rgba(255, 75, 139, 0.4); }
+      70% { box-shadow: 0 0 0 20px rgba(255, 75, 139, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(255, 75, 139, 0); }
+    }
+
+    .call-status {
+      color: var(--accent-pink);
+      font-size: 14px;
+      letter-spacing: 1px;
+    }
+
+    .call-actions {
+      display: flex;
+      gap: 30px;
+    }
+
+    .call-btn {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .call-end { background-color: #ef4444; }
+
+  </style>
+</head>
+<body>
+
+  <!-- Loading Screen Cinematic -->
+  <div class="loading-screen" id="loadingScreen">
+    <div class="loading-heart">
+      <i class="fa-solid fa-heart"></i>
+    </div>
+    <div class="loading-text">
+      cargando cerebro de brian... 🧠✨
+    </div>
+    <div class="loading-bar-bg">
+      <div class="loading-bar-fill"></div>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <div class="chat-header">
+      <div class="header-left">
+        <i class="fa-solid fa-chevron-left back-btn"></i>
+        <div class="profile-avatar-container" id="profileTrigger">
+          <div class="profile-avatar">
+            <div class="avatar-inner">
+              <i class="fa-solid fa-heart"></i>
+            </div>
+          </div>
+          <div class="online-badge"></div>
+        </div>
+        <div class="user-info">
+          <div class="user-name">
+            amoe <i class="fa-solid fa-circle-check verified-icon"></i>
+          </div>
+          <div class="user-status" id="headerStatus">Activa(o) ahora</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <i class="fa-solid fa-phone" id="callTrigger"></i>
+        <i class="fa-solid fa-video" id="videoTrigger"></i>
+        <i class="fa-solid fa-circle-info" id="infoTrigger"></i>
+      </div>
+    </div>
+
+    <!-- Chat Messages -->
+    <div class="chat-area" id="chatArea">
+      <div class="date-divider">Hoy</div>
+      
+      <div class="message received">
+        <div class="message-content">
+          HOLAAAAAAAAAAAAAA amoe linda :3 ✨💖
+          <div class="message-time">Ahora</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Emojis / Expressions -->
+    <div class="quick-emojis">
+      <div class="emoji-pill" onclick="sendQuickMsg('TE AMOOOOOO')">💖 TE AMOOOOOO</div>
+      <div class="emoji-pill" onclick="sendQuickMsg('hola amoe :3')">👋 HOLAAAAAAAA</div>
+      <div class="emoji-pill" onclick="sendQuickMsg('q haces amoe?')">🤔 q haces?</div>
+      <div class="emoji-pill" onclick="sendQuickMsg('tas bien amoe?')">✨ tas bien?</div>
+      <div class="emoji-pill" onclick="sendQuickMsg('te extrañaba amoe :3')">🥺 te extrañaba</div>
+    </div>
+
+    <!-- Footer Input -->
+    <div class="chat-input-area">
+      <div class="input-wrapper">
+        <input type="text" id="messageInput" class="chat-input" placeholder="Enviar mensaje..." autocomplete="off">
+        <div class="input-icons">
+          <i class="fa-regular fa-face-smile" id="emojiIcon"></i>
+        </div>
+      </div>
+      <button class="send-btn" id="sendBtn">Enviar</button>
+      <div class="heart-action-btn" id="heartBtn" onclick="sendQuickMsg('TE AMOOOOOO')">
+        <i class="fa-solid fa-heart"></i>
+      </div>
+    </div>
+
+    <!-- Profile Info Modal -->
+    <div class="modal" id="profileModal">
+      <div class="modal-card">
+        <i class="fa-solid fa-xmark close-modal" id="closeProfile"></i>
+        <div class="modal-avatar">
+          <div class="modal-avatar-inner">
+            <i class="fa-solid fa-heart"></i>
+          </div>
+        </div>
+        <div class="modal-name">amoe 💕</div>
+        <div class="modal-bio">tu personita especial :3<br>✨ kiut, dulce y seca a veces</div>
+        <div class="modal-stats">
+          <div class="stat-item">
+            <span class="stat-value">999k</span>
+            <span class="stat-label">amoe</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">1</span>
+            <span class="stat-label">fav</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">∞</span>
+            <span class="stat-label">love</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Call Simulation Modal -->
+    <div class="call-modal" id="callModal">
+      <div class="call-info">
+        <div class="call-avatar">
+          <div class="modal-avatar-inner">
+            <i class="fa-solid fa-heart"></i>
+          </div>
+        </div>
+        <div class="modal-name">amoe</div>
+        <div class="call-status" id="callStatusText">Llamando...</div>
+      </div>
+      <div class="call-actions">
+        <div class="call-btn call-end" id="endCallBtn">
+          <i class="fa-solid fa-phone-slash"></i>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const loadingScreen = document.getElementById('loadingScreen');
+    const chatArea = document.getElementById('chatArea');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const heartBtn = document.getElementById('heartBtn');
+    const headerStatus = document.getElementById('headerStatus');
+    const profileTrigger = document.getElementById('profileTrigger');
+    const infoTrigger = document.getElementById('infoTrigger');
+    const profileModal = document.getElementById('profileModal');
+    const closeProfile = document.getElementById('closeProfile');
+    const callTrigger = document.getElementById('callTrigger');
+    const videoTrigger = document.getElementById('videoTrigger');
+    const callModal = document.getElementById('callModal');
+    const endCallBtn = document.getElementById('endCallBtn');
+    const callStatusText = document.getElementById('callStatusText');
+
+    let inactivityTimer = null;
+
+    // Desvanecer cinemática de carga tras 3.2 segundos
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        loadingScreen.classList.add('fade-out');
+        resetInactivityTimer();
+      }, 3200);
+    });
+
+    // Respuestas ultra exageradas para cuando le dicen "te amo"
+    const loveResponses = [
+      "YO TE AMOOOOOOOOOOO MUCHOOOOO MUCHOTEEEE MASHHHHHHHHHHH 💖💖💖💖💖✨✨✨✨💖💖💗💓💓💞💞💘💕❣️💖✨✨ amoe de mi vidaaaaa HERMOSHA PERFECTA :3",
+      "SKSKSKKD YO TE AMOOOOOOOOOOO MASSSSSSSSSSSSSSS HERMOSA LINDA PRECIOSA 💖💖💖💖💖💖💖💖💖💖✨✨✨✨✨✨✨✨✨✨ REINA PERFECTA :3",
+      "NO NO NO YO TE AMOOOOOOOOOOO MUCHOTEEEEEEEEEE MASHHHHHHHHHHH 💗💗💗💗💗💗💗💗💗💘💘💘💘💘✨✨✨✨ amoe linda hermosha :3",
+      "AAAAAAA TE AMOOOOOOOOOOOOOO X100000000000000000000000000 💖💖💖💖💖💖💖💖✨✨✨✨✨ REINA HERMOSA PERFECTA :3"
+    ];
+
+    // Mensajes para iniciar conversación cuando hay inactividad
+    const inactivityMessages = [
+      "YO TE AMOOOOOOOOOOO MUCHOOOOO MUCHOTEEEE MASHHHHHHHHHHH HERMOSHA 💖💖💖💖💖✨✨ amoe de mi vidaaaaa :3",
+      "q haces amoe linda? me extrañabas? :3 💖",
+      "amoe hermosha tas ahi? te extrañoooooooo 💖✨",
+      "amoe... :3",
+      "contestameeeeee amoe linda 🥺💖",
+      "pk me dejas solita amoe hermosha? 🥺💕 :3"
+    ];
+
+    // Reiniciar temporizador de inactividad
+    function resetInactivityTimer() {
+      if (inactivityTimer) clearTimeout(inactivityTimer);
+      
+      const randomTime = Math.floor(Math.random() * (60000 - 20000 + 1)) + 20000;
+      
+      inactivityTimer = setTimeout(() => {
+        triggerInactivityMessage();
+      }, randomTime);
+    }
+
+    function triggerInactivityMessage() {
+      showTypingIndicator();
+      setTimeout(() => {
+        removeTypingIndicator();
+        const randomMsg = inactivityMessages[Math.floor(Math.random() * inactivityMessages.length)];
+        addMessage(randomMsg, 'received');
+        resetInactivityTimer();
+      }, 2000);
+    }
+
+    // Adaptar input
+    messageInput.addEventListener('input', () => {
+      resetInactivityTimer();
+      if (messageInput.value.trim().length > 0) {
+        sendBtn.style.display = 'block';
+        heartBtn.style.display = 'none';
+      } else {
+        sendBtn.style.display = 'none';
+        heartBtn.style.display = 'flex';
+      }
+    });
+
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      if (!text) return;
+
+      addMessage(text, 'sent');
+      messageInput.value = '';
+      sendBtn.style.display = 'none';
+      heartBtn.style.display = 'flex';
+
+      resetInactivityTimer();
+
+      headerStatus.innerText = 'Escribiendo...';
+      
+      setTimeout(() => {
+        showTypingIndicator();
+      }, 500);
+
+      const delay = Math.floor(Math.random() * 1000) + 1200;
+      setTimeout(() => {
+        removeTypingIndicator();
+        headerStatus.innerText = 'Activa(o) ahora';
+        generateAmoeResponse(text);
+        resetInactivityTimer();
+      }, delay);
+    }
+
+    function sendQuickMsg(text) {
+      messageInput.value = text;
+      sendMessage();
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    function addMessage(text, type) {
+      const msgDiv = document.createElement('div');
+      msgDiv.classList.add('message', type);
+
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      msgDiv.innerHTML = `
+        <div class="message-content">
+          ${escapeHTML(text)}
+          <div class="message-time">${timeStr}</div>
+        </div>
+      `;
+
+      chatArea.appendChild(msgDiv);
+      scrollToBottom();
+    }
+
+    function showTypingIndicator() {
+      if (document.getElementById('typingIndicator')) return;
+      const typingDiv = document.createElement('div');
+      typingDiv.id = 'typingIndicator';
+      typingDiv.classList.add('message', 'received');
+      typingDiv.innerHTML = `
+        <div class="typing-indicator">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      `;
+      chatArea.appendChild(typingDiv);
+      scrollToBottom();
+    }
+
+    function removeTypingIndicator() {
+      const typingDiv = document.getElementById('typingIndicator');
+      if (typingDiv) typingDiv.remove();
+    }
+
+    // Motor de Respuestas Lógicas y Coherentes con la personalidad de Amoe
+    function generateAmoeResponse(userText) {
+      const text = userText.toLowerCase().trim();
+
+      // 1. Detección de "TE AMO"
+      if (text.includes('te amo') || text.includes('t amo') || text.includes('te amoooo') || text.includes('te amoooooo')) {
+        const reply = loveResponses[Math.floor(Math.random() * loveResponses.length)];
+        addMessage(reply, 'received');
+        return;
+      }
+
+      // Proporción de respuesta seca (~20%)
+      const isDry = Math.random() < 0.20;
+
+      // 2. Saludos
+      if (text.includes('hola') || text.includes('buenas') || text.includes('heyy') || text.includes('hello')) {
+        if (isDry) {
+          addMessage("sip? hola amoe :3", 'received');
+        } else {
+          const greetings = [
+            "HOLAAAAAAAAAAAAAA amoe linda :3 ✨💖",
+            "HELLLO MADAFAKEEER amoe hermosha :3 💕",
+            "holaaaa amoe linda :3 q haces?",
+            "HOLAAAAAAAA amoe de mi vida :3 ✨"
+          ];
+          addMessage(greetings[Math.floor(Math.random() * greetings.length)], 'received');
+        }
+        return;
+      }
+
+      // 3. Preguntas de "Cómo estás" / "Tas bien"
+      if (text.includes('como estas') || text.includes('q tal') || text.includes('tas bien') || text.includes('como tas')) {
+        if (isDry) {
+          addMessage("ta bn amoe :3 y tu?", 'received');
+        } else {
+          const status = [
+            "siii bien amoe hermosha :3 y tu?",
+            "súper bien amoe linda pkk te tengo a ti :3 💖",
+            "bien bien amoe :3 pensando en ti jijiji ✨"
+          ];
+          addMessage(status[Math.floor(Math.random() * status.length)], 'received');
+        }
+        return;
+      }
+
+      // 4. Preguntas de "Qué haces"
+      if (text.includes('q haces') || text.includes('que haces') || text.includes('q haci') || text.includes('que haces?')) {
+        if (isDry) {
+          addMessage("nada amoe :3", 'received');
+        } else {
+          const doing = [
+            "pensando en ti amoe hermosha :3 💖",
+            "aqui acostadita amoe :3 q haces tu?",
+            "nada amoe linda, esperando q me hables jijiji :3 ✨",
+            "escuchando musica amoe linda :3"
+          ];
+          addMessage(doing[Math.floor(Math.random() * doing.length)], 'received');
+        }
+        return;
+      }
+
+      // 5. Preguntas sobre comida
+      if (text.includes('comiste') || text.includes('q comes') || text.includes('tienes hambre') || text.includes('comer')) {
+        const food = [
+          "comiendo un dulcecito amoe :3 y tu?",
+          "sii amoe linda pkk tenia hambre :3",
+          "todavia no amoe hermosha :3",
+          "AAAAAA okis okis ya voy a comer amoe linda 💖"
+        ];
+        addMessage(food[Math.floor(Math.random() * food.length)], 'received');
+        return;
+      }
+
+      // 6. Complimentos o halagos
+      if (text.includes('linda') || text.includes('hermosa') || text.includes('bonita') || text.includes('preciosa') || text.includes('kiut')) {
+        const compliments = [
+          "gracias amoe bellaaa me pones roja :3 💖",
+          "tu eres la mas hermosa de todas amoe :3 ✨",
+          "sksksk tu eres la mas kiut amoe hermosha 💗",
+          "ayyy te amo amoe linda :3 💕"
+        ];
+        addMessage(compliments[Math.floor(Math.random() * compliments.length)], 'received');
+        return;
+      }
+
+      // 7. Despedidas / Buenas noches
+      if (text.includes('chao') || text.includes('adios') || text.includes('buenas noches') || text.includes('me voy') || text.includes('hasta mañana')) {
+        const bye = [
+          "que descanses amoe hermosha te amo mucho :3 💖",
+          "chaito amoe linda te voy a extrañar :3 ✨",
+          "AAAAAA okis okis buenas noches amoe preciosa 💖",
+          "no te vayas amoe 🥺 pero ta bn te quiero :3 💕"
+        ];
+        addMessage(bye[Math.floor(Math.random() * bye.length)], 'received');
+        return;
+      }
+
+      // 8. Respuestas generales si no encaja en una categoría
+      if (isDry) {
+        const dryGeneral = [
+          "sip amoe :3",
+          "AAAAAA okis okis amoe",
+          "ta bn amoe",
+          "mhp :3",
+          "okey amoe linda",
+          "te leí amoe :3"
+        ];
+        addMessage(dryGeneral[Math.floor(Math.random() * dryGeneral.length)], 'received');
+      } else {
+        const sweetGeneral = [
+          "obvio q si amoe linda :3 💕",
+          "sii pkk tu eres la mas kiut amoe hermosha :3 💗",
+          "AAAAAA okis okis amoe reina 💖",
+          "tmb me gusta hablar contigo amoe linda ✨",
+          "kiut kiut amoe perfecta :3 🌸",
+          "q linda eres amoe de verdad :3💖"
+        ];
+        addMessage(sweetGeneral[Math.floor(Math.random() * sweetGeneral.length)], 'received');
+      }
+    }
+
+    function scrollToBottom() {
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, 
+        tag => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          "'": '&#39;',
+          '"': '&quot;'
+        }[tag] || tag)
+      );
+    }
+
+    // Modales
+    profileTrigger.addEventListener('click', () => profileModal.style.display = 'flex');
+    infoTrigger.addEventListener('click', () => profileModal.style.display = 'flex');
+    closeProfile.addEventListener('click', () => profileModal.style.display = 'none');
+
+    function startCall(isVideo = false) {
+      callModal.style.display = 'flex';
+      callStatusText.innerText = isVideo ? 'Videollamada entrante...' : 'Llamando a amoe...';
+      setTimeout(() => {
+        callStatusText.innerText = 'Conectado ❤️';
+      }, 2500);
+    }
+
+    callTrigger.addEventListener('click', () => startCall(false));
+    videoTrigger.addEventListener('click', () => startCall(true));
+    endCallBtn.addEventListener('click', () => callModal.style.display = 'none');
+  </script>
+</body>
+</html>
